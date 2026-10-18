@@ -1,8 +1,17 @@
 {
   "name": "heaven",
   "version": "1.0.0",
-  "description": "Your terminal API workshop",
-  "type": "module",
-  "bin": { "heaven": "./src/cli.js", "hv": "./src/cli.js" },
-  "engines": { "node": ">=20" }
+  "description": "A CLI for making, testing, and benchmarking HTTP requests",
+  "main": "src/cli.js",
+  "bin": {
+    "heaven": "./bin/heaven.js"
+  },
+  "scripts": {
+    "lint": "eslint src/**/*.js test/**/*.js",
+    "format": "prettier --write \"**/*.+(js|json)\""
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  }
 }
