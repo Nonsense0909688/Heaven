@@ -1,0 +1,8 @@
+{
+  "name": "heaven",
+  "version": "1.0.0",
+  "description": "Your terminal API workshop",
+  "type": "module",
+  "bin": { "heaven": "./src/cli.js", "hv": "./src/cli.js" },
+  "engines": { "node": ">=20" }
+}
