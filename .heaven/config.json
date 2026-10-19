@@ -1,4 +1,10 @@
 {
-  "active": null,
-  "envs": {}
+  "active": "dev",
+  "envs": {
+    "dev": {
+      "vars": {},
+      "headers": {},
+      "baseUrl": "https://jsonplaceholder.typicode.com"
+    }
+  }
 }

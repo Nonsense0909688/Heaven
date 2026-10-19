@@ -1,1 +1,6 @@
-{}
+{
+  "get-post": {
+    "method": "GET",
+    "url": "/posts/{{id}}"
+  }
+}

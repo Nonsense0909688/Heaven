@@ -5,7 +5,7 @@
 //   ctx.out    stdout (data)           ctx.err    stderr (messages)
 //   ctx.c      colours for stderr      ctx.cout   colours for stdout
 //   ctx.store  disk access
-// Rule: machine-readable data → stdout. Human diagnostics → stderr.
+// Rule: machine-readable data -> stdout. Human diagnostics -> stderr.
 import { HeavenError } from '../core/errors.js';
 import { parseKeyValues } from '../cli/value-parsers.js';
 
@@ -21,7 +21,9 @@ export const printJson = (ctx, data) => ctx.out.write(JSON.stringify(data, null,
 /** `--output` only supports "json". */
 export function checkOutputFlag(flags) {
   if (flags.output !== undefined && flags.output !== 'json') {
-    throw new HeavenError(`Unknown --output "${flags.output}". Only "json" is supported (to save a body use -o FILE).`);
+    throw new HeavenError(
+      `Unknown --output "${flags.output}". Only "json" is supported (to save a body use -o FILE).`
+    );
   }
 }
 

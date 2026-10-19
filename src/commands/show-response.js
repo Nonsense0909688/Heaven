@@ -1,6 +1,13 @@
 // Everything printed after a request: verbose headers, body, status line, check results.
 import { redactHeaders } from '../security/redact.js';
-import { formatBytes, formatMs, statusLine, headerLines, colorizeJson, responseEnvelope } from '../render/index.js';
+import {
+  formatBytes,
+  formatMs,
+  statusLine,
+  headerLines,
+  colorizeJson,
+  responseEnvelope,
+} from '../render/index.js';
 import { isJsonOutput, printJson } from './shared.js';
 
 /** `-V`: show the request we are about to send (secrets masked). */
@@ -21,10 +28,12 @@ function printVerboseResponse(ctx, res) {
 /** The response body on stdout: pretty/colourised JSON in a terminal, raw otherwise. */
 function printBody(ctx, res) {
   const { flags, out, err, c, cout } = ctx;
-  if (res.saved || flags.stream) return;               // already written elsewhere
+  if (res.saved || flags.stream) return; // already written elsewhere
 
   if (res.binary) {
-    err.write(c.yellow(`binary body (${formatBytes(res.size)}) not shown — use -o FILE to save it`) + '\n');
+    err.write(
+      c.yellow(`binary body (${formatBytes(res.size)}) not shown — use -o FILE to save it`) + '\n'
+    );
     return;
   }
   if (!res.text) return;
@@ -47,7 +56,11 @@ function printFooter(ctx, sent) {
   err.write(statusLine(res, c) + (res.redirected ? c.dim(` · ${res.url}`) : '') + '\n');
   if (res.saved) err.write(c.dim(`saved ${formatBytes(res.size)} → ${res.saved}`) + '\n');
   if (res.truncated) {
-    err.write(c.yellow(`output truncated at ${formatBytes(res.size)} (use -o FILE to stream the full body to disk, or --max-buffer MB)`) + '\n');
+    err.write(
+      c.yellow(
+        `output truncated at ${formatBytes(res.size)} (use -o FILE to stream the full body to disk, or --max-buffer MB)`
+      ) + '\n'
+    );
   }
   if (sent.historyId) err.write(c.dim(`history #${sent.historyId}`) + '\n');
 }
@@ -55,7 +68,7 @@ function printFooter(ctx, sent) {
 function printChecks(ctx, checks) {
   const { flags, err, c } = ctx;
   for (const ch of checks.checks) {
-    if (flags.silent && ch.ok) continue;               // even with --silent, a failed expectation must say why
+    if (flags.silent && ch.ok) continue; // even with --silent, a failed expectation must say why
     const mark = ch.ok ? c.green('✓') : c.red('✗');
     err.write(`${mark} ${ch.label}${ch.detail ? c.dim(` — ${ch.detail}`) : ''}\n`);
   }
@@ -71,10 +84,11 @@ export function showResponse(ctx, sent, checks) {
   if (isJsonOutput(ctx)) {
     printJson(ctx, responseEnvelope(res, checks));
   } else {
-    if (flags.include) out.write(`${res.status} ${res.statusText}\n${headerLines(res.headers).join('\n')}\n\n`);
+    if (flags.include)
+      out.write(`${res.status} ${res.statusText}\n${headerLines(res.headers).join('\n')}\n\n`);
     printBody(ctx, res);
   }
 
-  if (!flags.silent) printFooter(ctx, sent);
+  if (!flags.silent && flags['output'] !== 'json') printFooter(ctx, sent);
   if (checks) printChecks(ctx, checks);
 }

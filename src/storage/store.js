@@ -25,12 +25,14 @@ export class Store {
     writeJson(file, data);
   }
 
-  // ── config & environments ──────────────────────────────────────────
+  // config
   config() {
     const c = readJson(this.files.config, {});
     return { active: c.active ?? null, envs: c.envs ?? {} };
   }
-  saveConfig(config) { this.#write(this.files.config, config); }
+  saveConfig(config) {
+    this.#write(this.files.config, config);
+  }
 
   getEnv(name) {
     const { envs } = this.config();
@@ -38,25 +40,36 @@ export class Store {
     const known = Object.keys(envs);
     throw new HeavenError(
       `Unknown environment "${name}". ` +
-      (known.length ? `Known: ${known.join(', ')}` : 'None defined yet — try: heaven env set dev --base-url http://localhost:3000'),
+        (known.length
+          ? `Known: ${known.join(', ')}`
+          : 'None defined yet — try: heaven env set dev --base-url http://localhost:3000')
     );
   }
 
-  // ── saved requests ─────────────────────────────────────────────────
-  requests() { return readJson(this.files.requests, {}); }
-  saveRequests(requests) { this.#write(this.files.requests, requests); }
+  // requests save
+  requests() {
+    return readJson(this.files.requests, {});
+  }
+  saveRequests(requests) {
+    this.#write(this.files.requests, requests);
+  }
 
   getRequest(name) {
     const all = this.requests();
     if (all[name]) return all[name];
     const known = Object.keys(all);
     throw new HeavenError(
-      `No saved request named "${name}". ` + (known.length ? `Saved: ${known.join(', ')}` : 'Nothing saved yet — see: heaven save --help'),
+      `No saved request named "${name}". ` +
+        (known.length
+          ? `Saved: ${known.join(', ')}`
+          : 'Nothing saved yet — see: heaven save --help')
     );
   }
 
   // ── history ────────────────────────────────────────────────────────
-  history() { return readHistory(this.files.history); }
+  history() {
+    return readHistory(this.files.history);
+  }
 
   appendHistory(entry) {
     this.ensureDir();
@@ -69,5 +82,7 @@ export class Store {
     return entry;
   }
 
-  clearHistory() { fs.rmSync(this.files.history, { force: true }); }
+  clearHistory() {
+    fs.rmSync(this.files.history, { force: true });
+  }
 }

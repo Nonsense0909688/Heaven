@@ -4,14 +4,18 @@
   "description": "A CLI for making, testing, and benchmarking HTTP requests",
   "main": "src/cli.js",
   "bin": {
-    "heaven": "./bin/heaven.js"
+    "heaven": "./bin/heaven.js",
+    "hv": "./bin/heaven.js"
   },
   "scripts": {
+    "test": "node --test",
     "lint": "eslint src/**/*.js test/**/*.js",
-    "format": "prettier --write \"**/*.+(js|json)\""
+    "format": "prettier --write \"**/*.+(js|json)\"",
+    "dev": "node ./bin/heaven.js"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
     "prettier": "^3.0.0"
-  }
+  },
+  "type": "module"
 }

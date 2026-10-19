@@ -13,11 +13,12 @@ export function normalizeMethod(m) {
   return upper;
 }
 
-// ── pieces of templateFromFlags, one per concern ─────────────────────
-
 function headersFromFlags(list) {
   const headers = {};
-  for (const h of list) { const [k, v] = parseHeader(h); headers[k] = v; }
+  for (const h of list) {
+    const [k, v] = parseHeader(h);
+    headers[k] = v;
+  }
   return headers;
 }
 
@@ -25,7 +26,8 @@ function headersFromFlags(list) {
 function bodyFromFlags(flags) {
   const chosen = ['json', 'data', 'upload'].filter((k) => flags[k] !== undefined);
   if (flags.form?.length) chosen.push('form');
-  if (chosen.length > 1) throw new HeavenError(`Choose one body option, got: ${chosen.map((b) => '--' + b).join(', ')}`);
+  if (chosen.length > 1)
+    throw new HeavenError(`Choose one body option, got: ${chosen.map((b) => '--' + b).join(', ')}`);
 
   if (flags.json !== undefined) return { type: 'json', value: flags.json };
   if (flags.data !== undefined) return { type: 'raw', value: flags.data };
@@ -42,7 +44,8 @@ function authFromFlags(flags) {
 
 function timeoutFromFlags(flags) {
   const n = Number(flags.timeout);
-  if (!Number.isFinite(n) || n <= 0) throw new HeavenError('--timeout must be a positive number of milliseconds');
+  if (!Number.isFinite(n) || n <= 0)
+    throw new HeavenError('--timeout must be a positive number of milliseconds');
   return n;
 }
 
@@ -65,8 +68,6 @@ export function templateFromFlags(flags, method, url) {
   if (expect) t.expect = expect;
   return t;
 }
-
-// ── merging ──────────────────────────────────────────────────────────
 
 /** Headers are case-insensitive: an override replaces an existing header of any casing. */
 function mergeHeaders(base = {}, over) {
