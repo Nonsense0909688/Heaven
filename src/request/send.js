@@ -3,6 +3,7 @@
 import { prepare } from './prepare.js';
 import { executeRequest } from '../http/engine.js';
 import { redactTemplate } from '../security/redact.js';
+import { confirmProtectedRequest } from '../cli/confirm.js';
 
 /** Pick the environment: explicit name > active one > none. */
 export function resolveEnv(store, envName) {
@@ -26,6 +27,16 @@ export async function sendTemplate(store, template, opts = {}) {
 
   const { name: env, env: envDef } = resolveEnv(store, envName);
   const resolved = prepare(template, { env: envDef, vars: buildVars(envDef, extraVars, cliVars) });
+
+  // Confirm writes to protected environments BEFORE sending.
+  if (envDef.protected && resolved.method.toUpperCase() !== 'GET') {
+    const confirmed = await confirmProtectedRequest(env, resolved.method);
+
+    if (!confirmed) {
+      throw new HeavenError('Request cancelled by user.');
+    }
+  }
+
   if (onPrepared) onPrepared(resolved);
 
   // History stores the *redacted template* (never resolved secrets, never bodies of responses).
@@ -41,12 +52,12 @@ export async function sendTemplate(store, template, opts = {}) {
 
   const historyId = record
     ? store.appendHistory({
-      ...entry,
-      status: res.status,
-      timeMs: Math.round(res.timeMs),
-      size: res.size,
-      contentType: res.contentType || undefined,
-    })
+        ...entry,
+        status: res.status,
+        timeMs: Math.round(res.timeMs),
+        size: res.size,
+        contentType: res.contentType || undefined,
+      })
     : undefined;
   return { res, resolved, envName: env, historyId };
 }

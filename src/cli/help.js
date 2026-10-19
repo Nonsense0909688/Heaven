@@ -1,122 +1,399 @@
-// All help text. GENERAL is `heaven help`; COMMANDS[name] is `heaven help <name>`.
-export const GENERAL = `
-heaven — your terminal API workshop            (alias: hv)
+// All help text.
+//   GENERAL          -> `heaven help`
+//   COMMANDS[name]   -> `heaven help <name>`
+//
+// Conventions used throughout:
+//   UPPERCASE   placeholder you replace      [brackets]  optional
+//   a | b       choose one                   ...         may be repeated
 
-SEND
-  heaven get /users                       relative URLs use the active environment
+export const GENERAL = `
+heaven - a terminal workshop for HTTP APIs                      (alias: hv)
+
+USAGE
+  heaven <command> [arguments] [options]
+  heaven help <command>                 detailed help for one command
+
+SEND A REQUEST
+  heaven get /users                     relative URLs use the active environment
   heaven post /users --json '{"name":"Anish"}'
   heaven get https://api.github.com/users/octocat
   heaven get /users -q page=2 -H "X-Debug: 1" --bearer {{token}} -i
 
-REMEMBER
-  heaven save create-user post /users --json @user.json
-  heaven save --last ...                  (see: heaven help save)
-  heaven run create-user                  re-send it (add --env prod, --var id=7 …)
-  heaven list · heaven rm NAME
+SAVE AND REUSE
+  save      Store a request as a reusable template
+  run       Send a saved request, with optional overrides
+  list      List saved requests
+  rm        Delete a saved request
 
-ENVIRONMENTS
-  heaven env set staging --base-url https://staging.example.com --var token='{{$env.STAGING_TOKEN}}'
-  heaven env use staging · heaven env list · heaven env show
+ENVIRONMENTS AND SAFETY
+  env       Manage environments (base URL, variables, headers)
 
-COMPARE
-  heaven compare get-user --env dev --env prod --ignore updatedAt,id
+  heaven env set staging --base-url https://staging.example.com --protected
+  heaven env use staging
+  heaven save create-user post /users --requires-env staging
 
-HISTORY
-  heaven history · heaven history show 12 · heaven replay 12
+  Protected environments ask for confirmation before any non-GET request.
+  GET requests never prompt. In a non-interactive session, a write to a
+  protected environment fails safely without being sent.
+  A request saved with --requires-env runs only against that environment.
 
-WORKFLOWS & TESTS
-  heaven flow checkout.json               chain requests, extract values, assert
-  heaven get /health --expect-status 200 --expect-time 300
-  heaven bench get-users -n 200 -c 20
+COMPARE, REPLAY, TEST
+  compare   Send one request to two environments and diff the results
+  history   Browse past requests (secrets redacted, no response bodies)
+  replay    Re-send a history entry
+  flow      Run a multi-step workflow with extraction and assertions
+  bench     Measure latency and throughput under load
+  (inline checks) heaven get /health --expect-status 200 --expect-time 300
 
-OTHER
-  heaven init                             create a project-local .heaven/ (git-friendly)
-  heaven help <command>
+PROJECT SETUP
+  init      Create a project-local .heaven/ directory (git-friendly)
 
-COMMON OPTIONS
-  -H, --header "K: v"     -q, --query k=v        -e, --env NAME       -v, --var k=v
-  --json BODY|@file       -d, --data BODY|@file  -F, --form k=v|k=@file   --upload FILE
-  --bearer TOKEN          --basic user:pass      -t, --timeout MS     --no-follow
-  -i, --include           -V, --verbose          -s, --silent         -k, --insecure
-  -o, --output-file FILE  --output json          --raw / --pretty     --stream
-  --expect-status 200|2xx  --expect-json path=value  --expect-contains TEXT  --expect-time MS
-  --no-history            --no-fail              --no-color
+REQUEST OPTIONS
+  -H, --header "K: v"       Add a header                 (repeatable)
+  -q, --query k=v           Add a query parameter        (repeatable)
+  -e, --env NAME            Use environment NAME for this request
+  -v, --var k=v             Set a variable               (repeatable)
+      --json BODY|@file     Send a JSON body
+  -d, --data BODY|@file     Send a raw body
+  -F, --form k=v|k=@file    Send multipart form data     (repeatable)
+      --upload FILE         Upload a file as the request body
+      --bearer TOKEN        Bearer token authentication
+      --basic user:pass     Basic authentication
+  -t, --timeout MS          Abort after MS milliseconds
+      --no-follow           Do not follow redirects
+  -k, --insecure            Skip TLS certificate verification
+
+OUTPUT OPTIONS
+  -i, --include             Include response status and headers
+  -V, --verbose             Show request details as well as the response
+  -s, --silent              Suppress all output except errors
+  -o, --output-file FILE    Write the response body to FILE
+      --output json         Emit machine-readable JSON
+      --raw | --pretty      Disable or force body formatting
+      --stream              Print the response as it arrives
+      --no-color            Disable colored output
+
+ASSERTION OPTIONS
+  --expect-status 200|2xx           Require a status code or class
+  --expect-json path=value          Require a JSON field value
+  --expect-contains TEXT            Require text in the body
+  --expect-time MS                  Require a response within MS milliseconds
+
+SAFETY AND HISTORY OPTIONS
+  --protected               Mark an environment as protected (env set)
+  --requires-env NAME       Restrict a saved request to one environment (save)
+  --no-history              Do not record this request in history
+  --no-fail                 Exit 0 on HTTP 4xx/5xx responses
 
 EXIT CODES
-  0 ok · 1 usage/config error · 2 HTTP 4xx/5xx · 3 network/timeout/TLS · 4 assertion failed · 5 compare found differences
+  0  Success
+  1  Usage or configuration error
+  2  HTTP 4xx/5xx response
+  3  Network, timeout, or TLS failure
+  4  Assertion failed
+  5  Compare found differences
+
+Run "heaven help <command>" for examples and details.
 `;
 
 export const COMMANDS = {
+  request: `
+heaven METHOD URL [options]
+
+METHOD   get | post | put | patch | delete | head | options
+URL      Absolute (https://...) or relative to the active environment's base URL.
+
+Sends a single HTTP request and prints the response. {{variables}} in the URL,
+headers, query, and body are resolved from the environment, --var, and your
+shell ({{$env.NAME}}).
+
+EXAMPLES
+  heaven get /users -q page=2
+  heaven post /users --json '{"name":"Anish"}'
+  heaven post /upload -F title=Report -F file=@report.pdf
+  heaven get /health --expect-status 200 --expect-time 300
+
+NOTES
+  Requests to a protected environment prompt for confirmation unless the
+  method is GET. See "heaven help env".
+
+SEE ALSO
+  heaven help save     heaven help history     heaven help flow
+`,
+
   save: `
-heaven save NAME [METHOD] URL [request options]
-heaven save NAME --last [overrides]
+USAGE
+  heaven save NAME [METHOD] URL [request options]
+  heaven save NAME --last [overrides]
 
-Stores a request template under NAME in requests.json. {{placeholders}} are kept
-unresolved, so the same request works in any environment.
+DESCRIPTION
+  Stores a request template under NAME in requests.json. {{placeholders}} stay
+  unresolved, so one saved request works in every environment.
+
+OPTIONS
+  --last               Save the most recent history entry. Only possible when
+                       that entry contained no secrets.
+  --requires-env NAME  Restrict this request to environment NAME. Running it
+                       against any other environment is rejected before the
+                       request is sent.
+
+EXAMPLES
   heaven save login post /login --json '{"user":"anish","password":"{{$env.PASS}}"}'
-Literal secrets trigger a warning; use {{$env.NAME}} or {{variables}} instead.
---last re-saves the most recent history entry (only possible when it held no secrets).
+  heaven save create-user post /users --requires-env staging
+  heaven save --last create-user
+
+SECURITY
+  Literal secrets in a saved request trigger a warning. Use {{$env.NAME}} or
+  {{variables}} so credentials never touch disk.
+
+SEE ALSO
+  heaven help run     heaven help env
 `,
+
   run: `
-heaven run NAME [overrides]
+USAGE
+  heaven run NAME [overrides]
 
-Sends a saved request. Any request option overrides the saved one:
-  heaven run get-user --env prod --var id=42 -H "X-Debug: 1" -i
+DESCRIPTION
+  Sends a saved request. Any request option overrides the saved value.
+
+EXAMPLES
+  heaven run get-user --env prod --var id=42
+  heaven run get-user -H "X-Debug: 1" -i
+
+NOTES
+  A request saved with --requires-env must run against its required
+  environment. A mismatch is rejected before anything is sent.
+
+SEE ALSO
+  heaven help save     heaven help compare
 `,
+
+  list: `
+USAGE
+  heaven list
+
+DESCRIPTION
+  Lists all saved requests with their method and URL template.
+
+SEE ALSO
+  heaven help save     heaven help run
+`,
+
+  rm: `
+USAGE
+  heaven rm NAME
+
+DESCRIPTION
+  Deletes the saved request NAME. This does not affect history.
+
+SEE ALSO
+  heaven help list
+`,
+
   env: `
-heaven env set NAME [--base-url URL] [-v key=value]... [-H "Header: value"]...
-heaven env use NAME        make NAME the active environment
-heaven env list | show [NAME] | rm NAME
+USAGE
+  heaven env set NAME [--base-url URL] [-v key=value]... [-H "Header: value"]...
+                      [--protected]
+  heaven env use NAME
+  heaven env list
+  heaven env show [NAME]
+  heaven env rm NAME
 
-Variables with an empty value (-v key=) are removed. Values may reference your shell
-environment so secrets never touch disk:   -v token='{{$env.MY_TOKEN}}'
+DESCRIPTION
+  An environment bundles a base URL, variables, and default headers so the
+  same requests can target dev, staging, or production.
+
+COMMANDS
+  set    Create or update an environment
+  use    Make NAME the active environment
+  list   List all environments
+  show   Print an environment (defaults to the active one)
+  rm     Delete an environment
+
+OPTIONS
+  --base-url URL     Prefix applied to relative request URLs
+  -v, --var k=v      Set a variable. An empty value (-v key=) removes it.
+  -H, --header       Default header sent with every request
+  --protected        Require interactive confirmation for every non-GET
+                     request to this environment. If confirmation cannot be
+                     obtained (non-interactive session), the request fails
+                     safely without being sent.
+
+EXAMPLES
+  heaven env set staging --base-url https://staging.example.com --protected
+  heaven env set dev --base-url http://localhost:3000 -v token='{{$env.MY_TOKEN}}'
+  heaven env use staging
+
+SECURITY
+  Variable values may reference your shell environment, as in the token example
+  above, so secrets are never written to disk.
+
+SEE ALSO
+  heaven help save     heaven help compare
 `,
+
   compare: `
-heaven compare NAME --env A --env B [--ignore a,b.c,items[*].id] [--headers]
-heaven compare get /users --env dev --env prod
+USAGE
+  heaven compare NAME --env A --env B [--ignore PATHS] [--headers]
+  heaven compare METHOD URL --env A --env B [--ignore PATHS] [--headers]
 
-Sends the same request to both environments and reports differences in status, JSON
-body (field by field) and optionally headers. Response time is shown but never counts
-as a difference. --ignore takes key names (any depth), exact paths, or wildcards.
-Exit code 5 when differences are found, 0 when identical.
+DESCRIPTION
+  Sends the same request to two environments and reports differences in status
+  code and JSON body (field by field). Headers are compared only with --headers.
+  Response time is displayed but never counts as a difference.
+
+OPTIONS
+  --env NAME      Environment to compare (specify exactly twice)
+  --ignore PATHS  Comma-separated fields to skip. Accepts key names (matched at
+                  any depth), exact paths, or wildcards such as items[*].id
+  --headers       Include response headers in the comparison
+
+EXAMPLES
+  heaven compare get-user --env dev --env prod --ignore updatedAt,id
+  heaven compare get /users --env dev --env prod
+
+EXIT CODES
+  0  Responses are identical
+  5  Differences found
+
+SEE ALSO
+  heaven help env     heaven help run
 `,
+
   history: `
-heaven history [--limit 20] [--search TEXT]
-heaven history show ID
-heaven history clear
-heaven replay ID [overrides]
+USAGE
+  heaven history [--limit N] [--search TEXT]
+  heaven history show ID
+  heaven history clear
+  heaven replay ID [overrides]
 
-History stores request templates with secrets redacted, plus response metadata (status,
-time, size) — never response bodies. Replaying an entry that contained redacted secrets
-needs them supplied again (-H / --bearer) or expressed as {{variables}}.
+DESCRIPTION
+  Every request is recorded as a template with secrets redacted, plus response
+  metadata (status, time, size). Response bodies are never stored.
+  Use --no-history on any request to skip recording.
+
+COMMANDS
+  (none)   List recent entries
+  show     Display one entry in full
+  clear    Delete all history
+  replay   Re-send an entry, optionally with overrides
+
+OPTIONS
+  --limit N        Number of entries to list (default: 20)
+  --search TEXT    Show only entries matching TEXT
+
+REPLAYING REDACTED ENTRIES
+  If an entry contained a secret, supply it again with -H or --bearer, or
+  express it as a {{variable}}.
+
+EXAMPLES
+  heaven history --search /users --limit 5
+  heaven history show 12
+  heaven replay 12 --env staging
 `,
+
+  replay: `
+USAGE
+  heaven replay ID [overrides]
+
+DESCRIPTION
+  Re-sends the history entry ID. Any request option overrides the recorded value.
+  Entries that contained redacted secrets need them supplied again with -H or
+  --bearer, or expressed as {{variables}}.
+
+EXAMPLES
+  heaven replay 12
+  heaven replay 12 --env staging --bearer {{token}}
+
+SEE ALSO
+  heaven help history
+`,
+
   flow: `
-heaven flow FILE.json [--env NAME] [--var k=v] [--output json]
+USAGE
+  heaven flow FILE.json [--env NAME] [--var k=v] [--output json]
 
-{
-  "name": "login then fetch profile",
-  "vars": { "user": "anish" },
-  "steps": [
-    { "name": "login", "method": "POST", "url": "/login",
-      "json": { "user": "{{user}}", "password": "{{$env.PASS}}" },
-      "expect": { "status": 200 },
-      "extract": { "token": "body.access_token" } },
-    { "name": "me", "method": "GET", "url": "/me", "bearer": "{{token}}",
-      "expect": { "status": 200, "json": { "user": "anish" }, "maxTime": 500 } }
-  ]
-}
+DESCRIPTION
+  Runs a sequence of requests defined in a JSON file. Values extracted from one
+  step can be used in later steps as {{variables}}. Execution stops at the first
+  failing step unless "continueOnError": true is set on it.
 
-A step is either inline (method/url/...) or "use": "saved-request-name".
-extract: body.a.b[0] · headers.location · status.   expect: status (200 | "2xx" | [200,201]),
-maxTime, contains, headers, json (map of path→value or list of {path, equals|exists|gt|lt|matches|type}).
-Stops at the first failing step (set "continueOnError": true to keep going).
+FILE FORMAT
+  {
+    "name": "login then fetch profile",
+    "vars": { "user": "anish" },
+    "steps": [
+      { "name": "login", "method": "POST", "url": "/login",
+        "json": { "user": "{{user}}", "password": "{{$env.PASS}}" },
+        "expect": { "status": 200 },
+        "extract": { "token": "body.access_token" } },
+      { "name": "me", "method": "GET", "url": "/me", "bearer": "{{token}}",
+        "expect": { "status": 200, "json": { "user": "anish" }, "maxTime": 500 } }
+    ]
+  }
+
+STEPS
+  A step is either inline (method, url, and request fields) or a reference to a
+  saved request: { "use": "saved-request-name" }.
+
+EXTRACT
+  body.a.b[0]        a value from the JSON response body
+  headers.location   a response header
+  status             the HTTP status code
+
+EXPECT
+  status     200 | "2xx" | [200, 201]
+  maxTime    maximum response time in milliseconds
+  contains   text that must appear in the body
+  headers    required response headers
+  json       a map of path -> value, or a list of rules:
+             { "path": "...", "equals" | "exists" | "gt" | "lt" | "matches" | "type" }
+
+EXIT CODES
+  0  All steps passed
+  4  An assertion failed
 `,
-  bench: `
-heaven bench NAME|URL [-n 100] [-c 10] [--max-p95 MS] [--output json]
-heaven bench get /health -n 500 -c 25
 
-Sends -n requests with -c in flight; bodies are read and discarded. Reports latency
-percentiles, throughput, status histogram and error rate. Exit 2 if any request failed,
-4 if --max-p95 is exceeded.
+  bench: `
+USAGE
+  heaven bench NAME|URL [-n COUNT] [-c CONCURRENCY] [--max-p95 MS] [--output json]
+  heaven bench METHOD URL [-n COUNT] [-c CONCURRENCY]
+
+DESCRIPTION
+  Sends COUNT requests with CONCURRENCY in flight at once. Response bodies are
+  read and discarded. Reports latency percentiles, throughput, a status-code
+  histogram, and the error rate.
+
+OPTIONS
+  -n COUNT         Total requests to send (default: 100)
+  -c CONCURRENCY   Requests in flight at once (default: 10)
+  --max-p95 MS     Fail if the 95th-percentile latency exceeds MS
+  --output json    Emit results as JSON
+
+EXAMPLES
+  heaven bench get-users -n 200 -c 20
+  heaven bench get /health -n 500 -c 25 --max-p95 250
+
+EXIT CODES
+  0  All requests succeeded
+  2  One or more requests failed
+  4  --max-p95 threshold exceeded
+`,
+
+  init: `
+USAGE
+  heaven init
+
+DESCRIPTION
+  Creates a project-local .heaven/ directory so saved requests, environments,
+  and flows can live in your repository and be shared through git.
+
+NOTES
+  Keep secrets out of committed files: reference them as {{$env.NAME}} rather
+  than writing literal values.
+
+SEE ALSO
+  heaven help save     heaven help env
 `,
 };

@@ -1,10 +1,16 @@
 {
-  "active": "dev",
+  "active": "rome",
   "envs": {
     "dev": {
       "vars": {},
       "headers": {},
       "baseUrl": "https://jsonplaceholder.typicode.com"
+    },
+    "rome": {
+      "vars": {},
+      "headers": {},
+      "baseUrl": "https://jsonplaceholder.typicode.com",
+      "protected": true
     }
   }
 }

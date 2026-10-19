@@ -29,6 +29,7 @@ export const VALUE_FLAGS = {
   concurrency: { short: 'c' },
   'max-buffer': {},
   'max-p95': {},
+  'requires-env': {},
 };
 
 // On/off flags.  name -> short alias (or null)
@@ -48,12 +49,17 @@ export const BOOL_FLAGS = {
   raw: null,
   pretty: null,
   stream: null,
+  protected: null,
 };
 
 // Reverse lookups for short flags:  'H' -> 'header',  'i' -> 'include'
 export const SHORT_VALUE = Object.fromEntries(
-  Object.entries(VALUE_FLAGS).filter(([, v]) => v.short).map(([name, v]) => [v.short, name]),
+  Object.entries(VALUE_FLAGS)
+    .filter(([, v]) => v.short)
+    .map(([name, v]) => [v.short, name])
 );
 export const SHORT_BOOL = Object.fromEntries(
-  Object.entries(BOOL_FLAGS).filter(([, short]) => short).map(([name, short]) => [short, name]),
+  Object.entries(BOOL_FLAGS)
+    .filter(([, short]) => short)
+    .map(([name, short]) => [short, name])
 );

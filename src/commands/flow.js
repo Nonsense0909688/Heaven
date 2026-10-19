@@ -5,11 +5,23 @@ import { HeavenError } from '../core/errors.js';
 import { last } from '../cli/value-parsers.js';
 import { runFlow } from '../features/flow/run-flow.js';
 import { statusColor, formatMs } from '../render/index.js';
-import { isJsonOutput, printJson, checkOutputFlag, varsFromFlags, applyInsecure } from './shared.js';
+import {
+  isJsonOutput,
+  printJson,
+  checkOutputFlag,
+  varsFromFlags,
+  applyInsecure,
+} from './shared.js';
 
 function loadWorkflow(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {
-    throw new HeavenError(e.code === 'ENOENT' ? `Workflow file not found: ${file}` : `Cannot parse ${file}: ${e.message}`);
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new HeavenError(
+      e.code === 'ENOENT'
+        ? `Workflow file not found: ${file}`
+        : `Cannot parse ${file}: ${e.message}`
+    );
   }
 }
 
@@ -21,10 +33,13 @@ function printStep(ctx, s) {
   const time = s.timeMs !== undefined ? formatMs(s.timeMs) : '';
   const extracted = s.extracted.length ? c.dim(`  → ${s.extracted.join(', ')}`) : '';
 
-  out.write(` ${mark} ${s.index}. ${c.bold(s.name)}  ${c.dim(`${s.method} ${s.url}`)}  ${status}  ${c.dim(time)}${extracted}\n`);
+  out.write(
+    ` ${mark} ${s.index}. ${c.bold(s.name)}  ${c.dim(`${s.method} ${s.url}`)}  ${status}  ${c.dim(time)}${extracted}\n`
+  );
   if (s.error) out.write(`      ${c.red(s.error)}\n`);
   for (const ch of s.checks) {
-    if (!ch.ok) out.write(`      ${c.red('✗')} ${ch.label}${ch.detail ? c.dim(` — ${ch.detail}`) : ''}\n`);
+    if (!ch.ok)
+      out.write(`      ${c.red('✗')} ${ch.label}${ch.detail ? c.dim(` — ${ch.detail}`) : ''}\n`);
   }
 }
 
@@ -33,7 +48,7 @@ function printSummary(ctx, report) {
   const passed = report.steps.filter((s) => s.ok).length;
   out.write(
     `\n${report.ok ? c.green('PASSED') : c.red('FAILED')}  ${passed}/${report.steps.length + report.skipped} steps passed` +
-    `${report.skipped ? c.dim(` (${report.skipped} skipped after failure)`) : ''}\n`,
+      `${report.skipped ? c.dim(` (${report.skipped} skipped after failure)`) : ''}\n`
   );
 }
 

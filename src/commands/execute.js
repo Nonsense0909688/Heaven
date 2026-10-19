@@ -10,11 +10,12 @@ import { showResponse, printRequestVerbose } from './show-response.js';
 /** Flags that control how the response body is consumed. */
 function engineOptions(flags, out) {
   const engine = {};
-  if (flags['output-file']) engine.outputFile = flags['output-file'];       // stream to disk
-  if (flags.stream) engine.onChunk = (chunk) => out.write(chunk);           // print as it arrives
+  if (flags['output-file']) engine.outputFile = flags['output-file']; // stream to disk
+  if (flags.stream) engine.onChunk = (chunk) => out.write(chunk); // print as it arrives
   if (flags['max-buffer'] !== undefined) {
     const megabytes = Number(flags['max-buffer']);
-    if (!(megabytes > 0)) throw new HeavenError('--max-buffer must be a positive number of megabytes');
+    if (!(megabytes > 0))
+      throw new HeavenError('--max-buffer must be a positive number of megabytes');
     engine.maxBuffer = Math.floor(megabytes * 1024 * 1024);
   }
   return engine;
