@@ -1,5 +1,10 @@
 # Heaven ☁️
 
+[![CI Pipeline](https://github.com/Nonsense0909688/Heavens/actions/workflows/ci.yml/badge.svg)](https://github.com/Nonsense0909688/Heavens/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Code Style: Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+
 **Your terminal API workshop.**
 
 Heaven is a small command-line tool for talking to APIs. Send a request, save it
