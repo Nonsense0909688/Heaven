@@ -50,6 +50,7 @@ export const BOOL_FLAGS = {
   pretty: null,
   stream: null,
   protected: null,
+  'dry-run': null,
 };
 
 // Reverse lookups for short flags:  'H' -> 'header',  'i' -> 'include'

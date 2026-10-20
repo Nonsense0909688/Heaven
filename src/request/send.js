@@ -19,16 +19,42 @@ export function buildVars(env, extra = {}, cli = {}) {
 }
 
 /**
- * @param opts { envName, extraVars, cliVars, engine, historyName, record, onPrepared }
- * @returns { res, resolved, envName, historyId }
+ * @param opts { envName, extraVars, cliVars, engine, historyName, record, onPrepared, dryRun }
+ * @returns { res, resolved, envName, historyId, dryRun }
  */
 export async function sendTemplate(store, template, opts = {}) {
-  const { envName, extraVars, cliVars, engine, historyName, record = true, onPrepared } = opts;
+  const {
+    envName,
+    extraVars,
+    cliVars,
+    engine,
+    historyName,
+    record = true,
+    onPrepared,
+    dryRun = false,
+  } = opts;
 
   const { name: env, env: envDef } = resolveEnv(store, envName);
-  const resolved = prepare(template, { env: envDef, vars: buildVars(envDef, extraVars, cliVars) });
 
-  // Confirm writes to protected environments BEFORE sending.
+  const resolved = prepare(template, {
+    env: envDef,
+    vars: buildVars(envDef, extraVars, cliVars),
+  });
+
+  if (onPrepared) onPrepared(resolved);
+
+  // Dry-run: show the prepared request without sending or recording it.
+  if (dryRun) {
+    return {
+      res: null,
+      resolved,
+      envName: env,
+      historyId: undefined,
+      dryRun: true,
+    };
+  }
+
+  // Confirm writes to protected environments before sending.
   if (envDef.protected && resolved.method.toUpperCase() !== 'GET') {
     const confirmed = await confirmProtectedRequest(env, resolved.method);
 
@@ -37,16 +63,21 @@ export async function sendTemplate(store, template, opts = {}) {
     }
   }
 
-  if (onPrepared) onPrepared(resolved);
-
-  // History stores the *redacted template* (never resolved secrets, never bodies of responses).
-  const entry = { name: historyName, env, request: redactTemplate(template) };
+  // History stores the redacted template, not resolved secrets.
+  const entry = {
+    name: historyName,
+    env,
+    request: redactTemplate(template),
+  };
 
   let res;
+
   try {
     res = await executeRequest(resolved, engine);
   } catch (e) {
-    if (record) store.appendHistory({ ...entry, error: e.message });
+    if (record) {
+      store.appendHistory({ ...entry, error: e.message });
+    }
     throw e;
   }
 
@@ -59,5 +90,6 @@ export async function sendTemplate(store, template, opts = {}) {
         contentType: res.contentType || undefined,
       })
     : undefined;
-  return { res, resolved, envName: env, historyId };
+
+  return { res, resolved, envName: env, historyId, dryRun: false };
 }

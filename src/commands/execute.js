@@ -29,6 +29,21 @@ function exitCodeFor(res, template, checks, flags) {
   return EXIT.OK;
 }
 
+export function formatDryRun(request, c) {
+  return [
+    c.bold(' DRY RUN ') + c.dim('— Request not sent'),
+    '',
+    `${c.dim('Method:')}  ${c.cyan(request.method ?? 'GET')}`,
+    `${c.dim('URL:')}     ${c.green(request.url ?? '(not set)')}`,
+    `${c.dim('Headers:')} ${c.gray(JSON.stringify(request.headers ?? {}, null, 2))}`,
+    `${c.dim('Query:')}   ${c.gray(JSON.stringify(request.query ?? []))}`,
+    `${c.dim('Body:')}    ${c.gray(JSON.stringify(request.body ?? null, null, 2))}`,
+    `${c.dim('Auth:')}    ${c.magenta(JSON.stringify(request.auth ?? null))}`,
+    `${c.dim('Timeout:')} ${c.gray(request.timeout ?? 'Default')}`,
+    `${c.dim('Redirects:')} ${request.follow === false ? c.red('Disabled') : c.green('Enabled')}`,
+  ].join('\n');
+}
+
 export async function execute(ctx, template, { historyName, envName } = {}) {
   const { flags, err, c, out } = ctx;
   checkOutputFlag(flags);
@@ -38,14 +53,22 @@ export async function execute(ctx, template, { historyName, envName } = {}) {
     err.write(c.yellow('warning: TLS certificate verification is disabled (--insecure)\n'));
   }
 
+  const dryRun = Boolean(flags['dry-run']);
+
   const sent = await sendTemplate(ctx.store, template, {
     envName: envName ?? last(flags.env),
     cliVars: cliVarsFromFlags(flags),
     engine: engineOptions(flags, out),
     historyName,
     record: !flags['no-history'],
+    dryRun,
     onPrepared: flags.verbose ? (resolved) => printRequestVerbose(ctx, resolved) : undefined,
   });
+
+  if (sent.dryRun) {
+    out.write(formatDryRun(sent.resolved, c) + '\n');
+    return 0;
+  }
 
   const checks = template.expect ? evaluate(template.expect, sent.res) : null;
   showResponse(ctx, sent, checks);
